@@ -178,16 +178,66 @@ int main(void)
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 
+  TIM_OC_InitTypeDef phaseConfig = {0};
+
+  const uint32_t channels[4] = {
+      TIM_CHANNEL_1, TIM_CHANNEL_2,
+      TIM_CHANNEL_3, TIM_CHANNEL_4
+  };
+
+  const uint32_t compareValues[4] = {
+      125, 375, 375, 125
+  };
+
+  phaseConfig.OCMode = TIM_OCMODE_ASYMMETRIC_PWM2;
+  phaseConfig.OCPolarity = TIM_OCPOLARITY_HIGH;
+  phaseConfig.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  phaseConfig.OCFastMode = TIM_OCFAST_DISABLE;
+  phaseConfig.OCIdleState = TIM_OCIDLESTATE_RESET;
+  phaseConfig.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+
+  for (uint32_t i = 0; i < 4; i++)
+  {
+      phaseConfig.Pulse = compareValues[i];
+
+      if (HAL_TIM_PWM_ConfigChannel(
+              &htim1, &phaseConfig, channels[i]) != HAL_OK)
+      {
+          Error_Handler();
+      }
+  }
+
+  /* Stop after 1000 complete up/down periods. */
   SET_BIT(htim1.Instance->CR1, TIM_CR1_OPM);
 
+  /* Load all timing values before starting. */
   htim1.Instance->EGR = TIM_EGR_UG;
   __HAL_TIM_CLEAR_FLAG(&htim1, TIM_FLAG_UPDATE);
 
+  /* Enable A and B together, then start their shared counter. */
+  SET_BIT(htim1.Instance->CCER,
+          TIM_CCER_CC1E | TIM_CCER_CC3E);
 
-  if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
-  {
-      Error_Handler();
-  }
+  __HAL_TIM_MOE_ENABLE(&htim1);
+  __HAL_TIM_ENABLE(&htim1);
+
+
+
+
+
+  //////////////////////////////////////////////////////////
+
+
+  // SET_BIT(htim1.Instance->CR1, TIM_CR1_OPM);
+
+  // htim1.Instance->EGR = TIM_EGR_UG;
+  // __HAL_TIM_CLEAR_FLAG(&htim1, TIM_FLAG_UPDATE);
+
+
+  // if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
+  // {
+  //     Error_Handler();
+  // }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -1377,10 +1427,10 @@ static void MX_TIM1_Init(void)
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 23;
-  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 999;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED3;
+  htim1.Init.Period = 500;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim1.Init.RepetitionCounter = 999;
+  htim1.Init.RepetitionCounter = 1999;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
   {
@@ -1395,6 +1445,10 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_OC_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
@@ -1402,14 +1456,33 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM2;
-  sConfigOC.Pulse = 500;
+  sConfigOC.OCMode = TIM_OCMODE_ASSYMETRIC_PWM1;
+  sConfigOC.Pulse = 125;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
   if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  __HAL_TIM_DISABLE_OCxPRELOAD(&htim1, TIM_CHANNEL_1);
+  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.Pulse = 375;
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_ASSYMETRIC_PWM2;
+  if (HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  __HAL_TIM_DISABLE_OCxPRELOAD(&htim1, TIM_CHANNEL_3);
+  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.Pulse = 25;
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
   }
